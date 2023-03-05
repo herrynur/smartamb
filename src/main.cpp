@@ -68,10 +68,6 @@ void phRead()
     timepoint = millis();
     voltage = analogRead(PH_PIN) / 4096.0 * 3300;
     phValue = ph.readPH(voltage, _temperature);
-    // Serial.print("temperature:");
-    // Serial.print(_temperature,1);
-    // Serial.print("^C  pH:");
-    // Serial.println(phValue,2);
   }
   ph.calibration(voltage, _temperature);
 }
@@ -90,10 +86,11 @@ void phRead()
 float Do_result;
 
 const uint16_t DO_Table[41] = {
-    14460, 14220, 13820, 13440, 13090, 12740, 12420, 12110, 11810, 11530,
-    11260, 11010, 10770, 10530, 10300, 10080, 9860, 9660, 9460, 9270,
-    9080, 8900, 8730, 8570, 8410, 8250, 8110, 7960, 7820, 7690,
-    7560, 7430, 7300, 7180, 7070, 6950, 6840, 6730, 6630, 6530, 6410};
+  14460, 14220, 13820, 13440, 13090, 12740, 12420, 12110, 11810, 11530,
+  11260, 11010, 10770, 10530, 10300, 10080, 9860, 9660, 9460, 9270,
+  9080, 8900, 8730, 8570, 8410, 8250, 8110, 7960, 7820, 7690,
+  7560, 7430, 7300, 7180, 7070, 6950, 6840, 6730, 6630, 6530, 6410
+};
 
 uint8_t Temperaturet;
 uint16_t ADC_Raw;
@@ -101,16 +98,17 @@ uint16_t ADC_Voltage;
 uint16_t DO;
 
 void do_read();
+
 int16_t readDO(uint32_t voltage_mv, uint8_t temperature_c);
 int16_t readDO(uint32_t voltage_mv, uint8_t temperature_c)
 {
-#if TWO_POINT_CALIBRATION == 0
-  uint16_t V_saturation = (uint32_t)CAL1_V + (uint32_t)35 * temperature_c - (uint32_t)CAL1_T * 35;
-  return (voltage_mv * DO_Table[temperature_c] / V_saturation);
-#else
-  uint16_t V_saturation = (int16_t)((int8_t)temperature_c - CAL2_T) * ((uint16_t)CAL1_V - CAL2_V) / ((uint8_t)CAL1_T - CAL2_T) + CAL2_V;
-  return (voltage_mv * DO_Table[temperature_c] / V_saturation);
-#endif
+  #if TWO_POINT_CALIBRATION == 0
+    uint16_t V_saturation = (uint32_t)CAL1_V + (uint32_t)35 * temperature_c - (uint32_t)CAL1_T * 35;
+    return (voltage_mv * DO_Table[temperature_c] / V_saturation);
+  #else
+    uint16_t V_saturation = (int16_t)((int8_t)temperature_c - CAL2_T) * ((uint16_t)CAL1_V - CAL2_V) / ((uint8_t)CAL1_T - CAL2_T) + CAL2_V;
+    return (voltage_mv * DO_Table[temperature_c] / V_saturation);
+  #endif
 }
 // End DO
 
@@ -124,15 +122,31 @@ const char *password = "heri1234567";
 const char *mqtt_server = "broker.hivemq.com";
 #define MQTT_USERNAME ""
 #define MQTT_KEY ""
+
 // Setting id disini, id disini harus sama dengan yang di Android
 String topic = "smartambak/tambak1";
+//Topic utama adalah "smartambak/tambak1"
+
+//Topic untuk control akuator
+// Button 1 -> smartambak/tambak1/B1
+// Button 2 -> smartambak/tambak1/B2
+// Button 3 -> smartambak/tambak1/B3
+// Button 4 -> smartambak/tambak1/B4
+
+String topicB1;
+String topicB2;
+String topicB3;
+String topicB4;
+
 String dataKirim = "-,-,-,-";
 
 // wifi client
 WiFiClient espClient;
 PubSubClient client(espClient);
+
 void setup_wifi();
 void reconnect();
+void callback(char *topic, byte *payload, unsigned int length);
 
 // connectt wifi
 void setup_wifi()
@@ -190,12 +204,18 @@ void reconnect()
 
 void setup()
 {
+  //Set topic akuator
+  topicB1 = topic + "/B1";
+  topicB2 = topic + "/B2";
+  topicB3 = topic + "/B3";
+  topicB4 = topic + "/B4";
   Serial.begin(115200);
   pinMode(tds, INPUT);
   pinMode(ledR, OUTPUT);
   pinMode(ledwifi, OUTPUT);
   setup_wifi();
   client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
   ph.begin();
 }
 
@@ -281,4 +301,53 @@ void sendData(int time_)
     digitalWrite(ledR, LOW);
     delay(100);
   }
+}
+
+//Program utama saat menerima data dari mqtt
+void callback(char *topic, byte *payload, unsigned int length)
+{
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+
+  for (int i = 0; i < length; i++)
+  {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+
+  // Setting untuk Butoon1 dan Button2
+  //Relay 1
+  if (strcmp(topic, (char*) topicB1.c_str()) == 0)
+  {
+    if ((char)payload[0] == '1') {
+      //Saat menerima data 1 maka relay 1 menyala
+      Serial.print("Data B1 : ");
+      Serial.println(payload[0]);
+      digitalWrite(2, LOW);
+    }
+    else
+    {
+      //Saat menerima data 0 maka relay 1 mati
+      Serial.print("Data B1 : ");
+      Serial.println(payload[0]);
+      digitalWrite(2, HIGH);
+    }
+  }
+  //Relay2
+  else if (strcmp(topic, (char*) topicB2.c_str()) == 0)
+  {
+    if ((char)payload[0] == '1') {
+      Serial.print("Data B2 : ");
+      Serial.println(payload[0]);
+      digitalWrite(2, LOW);
+    }
+    else
+    {
+      Serial.print("Data B2 : ");
+      Serial.println(payload[0]);
+      digitalWrite(2, HIGH);
+    }
+  }
+  //Bisa ditambah porgram yang sama untuk relay 3 dan 4 dengan mengganti topic
 }
