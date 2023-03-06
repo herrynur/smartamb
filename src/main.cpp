@@ -207,10 +207,10 @@ void reconnect()
 void setup()
 {
   //Set topic akuator
-  topicB1 = topic + "/B1";
-  topicB2 = topic + "/B2";
-  topicB3 = topic + "/B3";
-  topicB4 = topic + "/B4";
+  topicB1 = topic + "/R1";
+  topicB2 = topic + "/R2";
+  topicB3 = topic + "/R3";
+  topicB4 = topic + "/R4";
   Serial.begin(115200);
   pinMode(tds, INPUT);
   pinMode(ledR, OUTPUT);
