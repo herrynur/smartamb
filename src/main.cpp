@@ -194,7 +194,7 @@ void reconnect()
       Serial.println("connected");
       client.subscribe((char*) topicB1.c_str(), 1);
       client.subscribe((char*) topicB2.c_str(), 1);
-      client.subscribe((char*) topicB31.c_str(), 1);
+      client.subscribe((char*) topicB3.c_str(), 1);
       client.subscribe((char*) topicB4.c_str(), 1);
     }
     else
