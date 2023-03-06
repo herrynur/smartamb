@@ -16,10 +16,12 @@ int analogBuffer[SCOUNT];
 int analogBufferTemp[SCOUNT];
 int analogBufferIndex = 0;
 int copyIndex = 0;
+int tdsValue = 0;
 
 float averageVoltage = 0;
-int tdsValue = 0;
 float temperature = 25;
+
+String statusTds = "";
 
 int getMedianNum(int bArray[], int iFilterLen);
 void tdsRead();
@@ -248,34 +250,44 @@ void do_read()
 
 void tdsRead()
 {
-  static unsigned long analogSampleTimepoint = millis();
-  if (millis() - analogSampleTimepoint > 40U)
-  {
-    analogSampleTimepoint = millis();
-    analogBuffer[analogBufferIndex] = analogRead(tds);
-    analogBufferIndex++;
-    if (analogBufferIndex == SCOUNT)
-    {
-      analogBufferIndex = 0;
-    }
-  }
+  // static unsigned long analogSampleTimepoint = millis();
+  // if (millis() - analogSampleTimepoint > 40U)
+  // {
+  //   analogSampleTimepoint = millis();
+  //   analogBuffer[analogBufferIndex] = analogRead(tds);
+  //   analogBufferIndex++;
+  //   if (analogBufferIndex == SCOUNT)
+  //   {
+  //     analogBufferIndex = 0;
+  //   }
+  // }
 
-  static unsigned long printTimepoint = millis();
-  if (millis() - printTimepoint > 800U)
-  {
-    printTimepoint = millis();
-    for (copyIndex = 0; copyIndex < SCOUNT; copyIndex++)
-    {
-      analogBufferTemp[copyIndex] = analogBuffer[copyIndex];
-      averageVoltage = getMedianNum(analogBufferTemp, SCOUNT) * (float)VREF_TDS / 4096.0;
-      float compensationCoefficient = 1.0 + 0.02 * (temperature - 25.0);
-      float compensationVoltage = averageVoltage / compensationCoefficient;
-      tdsValue = (133.42 * compensationVoltage * compensationVoltage * compensationVoltage - 255.86 * compensationVoltage * compensationVoltage + 857.39 * compensationVoltage) * 0.5;
+  // static unsigned long printTimepoint = millis();
+  // if (millis() - printTimepoint > 800U)
+  // {
+  //   printTimepoint = millis();
+  //   for (copyIndex = 0; copyIndex < SCOUNT; copyIndex++)
+  //   {
+  //     analogBufferTemp[copyIndex] = analogBuffer[copyIndex];
+  //     averageVoltage = getMedianNum(analogBufferTemp, SCOUNT) * (float)VREF_TDS / 4096.0;
+  //     float compensationCoefficient = 1.0 + 0.02 * (temperature - 25.0);
+  //     float compensationVoltage = averageVoltage / compensationCoefficient;
+  //     tdsValue = (133.42 * compensationVoltage * compensationVoltage * compensationVoltage - 255.86 * compensationVoltage * compensationVoltage + 857.39 * compensationVoltage) * 0.5;
 
-      // Serial.print("TDS Value:");
-      // Serial.print(tdsValue, 0);
-      // Serial.print(" ppm | ph : ");
-      // Serial.println(phValue, 2);
+  //     // Serial.print("TDS Value:");
+  //     // Serial.print(tdsValue, 0);
+  //     // Serial.print(" ppm | ph : ");
+  //     // Serial.println(phValue, 2);
+  //   }
+  // }
+
+  static unsigned long refresh = millis();
+  if (millis() - refresh > 500)
+  {
+    if(digitalRead(tds) == 1) {
+      statusTds = "Keruh";
+    } else {
+      statusTds = "Jernih";
     }
   }
 }
@@ -283,7 +295,7 @@ void tdsRead()
 void sendData(int time_)
 {
   String dataKirim = "-,-,-,-";
-  dataKirim = String(temperature) + "," + String(phValue) + "," + String(tdsValue) + "," + String(Do_result);
+  dataKirim = String(temperature) + "," + String(phValue) + "," + statusTds + "," + String(Do_result);
   static unsigned long refresh = millis();
   if (millis() - refresh > time_)
   {
